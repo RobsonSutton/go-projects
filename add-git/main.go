@@ -1,8 +1,8 @@
 package main
 
 import (
+	"compress/gzip"
 	"crypto/sha1"
-	_ "crypto/sha1"
 	"fmt"
 	"io"
 	"log"
@@ -45,7 +45,39 @@ func createBlob(path string) {
 	if _, err = io.Copy(hash, fileContents); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("% x", hash.Sum(nil))
+	hashedValue := fmt.Sprintf("%X", hash.Sum(nil))
+	fmt.Println(hashedValue)
+
+	// Generate Object path
+	folderName := hashedValue[0:2]
+	fileName := hashedValue[2:]
+	fmt.Println(folderName)
+	fmt.Println(fileName)
+	err = os.MkdirAll(basePath+"/objects/"+string(folderName), 0750)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	gzFile, err := os.Create(basePath + "/objects/" + string(folderName) + "/" + string(fileName))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer gzFile.Close()
+
+	// Compress Object - gzip
+	gzipWriter := gzip.NewWriter(gzFile)
+	defer gzipWriter.Close()
+
+	_, err = io.Copy(gzipWriter, fileContents)
+	if err != nil {
+		panic(err)
+	}
+
+	gzipWriter.Flush()
+}
+
+func readBlob(path string) {
+
 }
 
 // Read a blob object
